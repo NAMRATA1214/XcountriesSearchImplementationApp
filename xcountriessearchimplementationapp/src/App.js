@@ -32,7 +32,7 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const fetchResult = await axios.get('https://restcountries.com/v3.1/all');
+        const fetchResult = await axios.get('https://countries-search-data-prod-812920491762.asia-south1.run.app/countries');
         console.log(fetchResult.data);
         setTotalCountryList(fetchResult.data);
         setCountryList(fetchResult.data);
