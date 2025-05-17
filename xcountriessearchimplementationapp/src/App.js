@@ -1,114 +1,94 @@
-import { useEffect, useState } from "react";
-import "./App.css";
+import { useEffect, useState, useMemo } from 'react';
+import './App.css';
+import axios from 'axios';
+import Card from './Card';
 
-export default function App() {
-  const [countries, setCountries] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [searchData, setSearchData] = useState([]);
+function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [totalCountryList, setTotalCountryList] = useState([]);
+  const [countryList, setCountryList] = useState([]);
+  const [success, setSuccess] = useState(false);
+
+  const debounceCreator = (func, delay) => {
+    let timer;
+    return (...args) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => func(...args), delay);
+    };
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    console.log('SEARCH:', value);
+  };
+
+  const debounceHandleSearchChange = useMemo(
+    () => debounceCreator(handleSearchChange, 500),
+    []
+  );
 
   useEffect(() => {
-    fetch("https://countries-search-data-prod-812920491762.asia-south1.run.app/countries")
-      .then((res) => res.json())
-      .then((data) => {
-        setCountries(data);
-        setSearchData(data);
-      })
-      .catch((err) => console.error("Error fetching data: ", err));
+    const fetchData = async () => {
+      try {
+        const fetchResult = await axios.get(
+          'https://countries-search-data-prod-812920491762.asia-south1.run.app/countries'
+        );
+        console.log(fetchResult.data);
+        setTotalCountryList(fetchResult.data);
+        setCountryList(fetchResult.data);
+        setSuccess(true);
+      } catch (err) {
+        console.log('Error:', err);
+        setSuccess(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      searchCountries();
-    }, 300); // Adjust the debounce delay as needed
-
-    return () => clearTimeout(timer);
-  }, [searchText]);
-
-  function handleSearch(e) {
-    setSearchText(e.target.value);
-  }
-
-  function searchCountries() {
-    if (searchText === "") {
-      setSearchData(countries);
-      return;
+    try {
+      if (searchQuery === '') {
+        setSuccess(true);
+        setCountryList(totalCountryList);
+      } else {
+        const filteredCountries = totalCountryList.filter((country) =>
+          country.common.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        if (filteredCountries.length > 0) {
+          setSuccess(true);
+          setCountryList(filteredCountries);
+        } else {
+          setSuccess(false);
+        }
+      }
+    } catch (err) {
+      console.log('Error:', err);
+      setSuccess(false);
     }
-
-    const filteredData = countries.filter((country) =>
-      country.name.common.toLowerCase().includes(searchText.toLowerCase())
-    );
-    setSearchData(filteredData);
-  }
-
-  const cardStyle = {
-    width: "200px",
-    height: "200px",
-    border: "1px solid #ccc",
-    borderRadius: "10px",
-    margin: "10px",
-    padding: "10px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-
-  const imageStyle = {
-    width: "100px",
-    height: "100px",
-  };
-
-  const containerStyle = {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    height: "100vh",
-    marginTop: "30px",
-  };
-
-  const searchBoxContainer = {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "60px",
-  };
-
-  const searchBox = {
-    width: "800px",
-    height: "30px",
-  };
+  }, [searchQuery, totalCountryList]);
 
   return (
-    <div>
-      <div style={{ backgroundColor: "rgba(0,0,0,0.1)" }}>
-        <form
-          style={searchBoxContainer}
-          onSubmit={(e) => {
-            e.preventDefault();
-            searchCountries();
-          }}
-        >
-          <input
-            style={searchBox}
-            type="text"
-            value={searchText}
-            onChange={(e) => handleSearch(e)}
-            placeholder="Search for countries..."
-          />
-        </form>
-      </div>
-      <div style={containerStyle}>
-        {searchData.map((country) => (
-          <div key={country.cca3} style={cardStyle} className="countryCard">
-            <img
-              src={country.flags.png}
-              alt={`Flag of ${country.name.common}`}
-              style={imageStyle}
+    <div className="App">
+      <header className="flex-center">
+        <input
+          type="text"
+          placeholder="Search for countries"
+          onChange={(e) => debounceHandleSearchChange(e.target.value)}
+        />
+      </header>
+      <div className="flag-container flex-center">
+        {success &&
+          countryList.map((country, index) => (
+            <Card
+              key={index}
+              countryFlag={country.png}
+              countryName={country.common}
             />
-            <h2>{country.name.common}</h2>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );
 }
+
+export default App;
