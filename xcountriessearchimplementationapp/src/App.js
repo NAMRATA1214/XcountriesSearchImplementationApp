@@ -7,7 +7,7 @@ export default function App() {
   const [searchData, setSearchData] = useState([]);
 
   useEffect(() => {
-    fetch("https://restcountries.com/v3.1/all")
+    fetch("https://countries-search-data-prod-812920491762.asia-south1.run.app/countries")
       .then((res) => res.json())
       .then((data) => {
         setCountries(data);
