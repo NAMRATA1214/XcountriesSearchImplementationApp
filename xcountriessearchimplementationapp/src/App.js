@@ -1,78 +1,114 @@
-import { useEffect, useState, useMemo } from 'react';
-import './App.css';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import "./App.css";
 
-function App() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [totalCountryList, setTotalCountryList] = useState([]);
-  const [countryList, setCountryList] = useState([]);
+export default function App() {
+  const [countries, setCountries] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [searchData, setSearchData] = useState([]);
 
-  const debounceCreator = (func, delay) => {
-    let timer;
-    return (...args) => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => func(...args), delay);
-    };
-  };
-
-  const handleSearchChange = (value) => {
-    setSearchQuery(value);
-    console.log('SEARCH:', value);
-  };
-
-  const debounceHandleSearchChange = useMemo(
-    () => debounceCreator(handleSearchChange, 500),
-    []
-  );
-
-  // Fetch data from specified API endpoint
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(
-          'https://countries-search-data-prod-812920491762.asia-south1.run.app/countries'
-        );
-        console.log(res.data);
-        setTotalCountryList(res.data);
-        setCountryList(res.data);
-      } catch (err) {
-        console.log('Error fetching data:', err);
-      }
-    };
-
-    fetchData();
+    fetch("https://restcountries.com/v3.1/all")
+      .then((res) => res.json())
+      .then((data) => {
+        setCountries(data);
+        setSearchData(data);
+      })
+      .catch((err) => console.error("Error fetching data: ", err));
   }, []);
 
-  // Filter based on search input
   useEffect(() => {
-  const filtered = totalCountryList.filter((country) =>
-  typeof country.name === 'string' &&
-  country.name.toLowerCase().includes(searchQuery.toLowerCase())
-);
-    setCountryList(filtered);
-  }, [searchQuery, totalCountryList]);
+    const timer = setTimeout(() => {
+      searchCountries();
+    }, 300); // Adjust the debounce delay as needed
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  function handleSearch(e) {
+    setSearchText(e.target.value);
+  }
+
+  function searchCountries() {
+    if (searchText === "") {
+      setSearchData(countries);
+      return;
+    }
+
+    const filteredData = countries.filter((country) =>
+      country.name.common.toLowerCase().includes(searchText.toLowerCase())
+    );
+    setSearchData(filteredData);
+  }
+
+  const cardStyle = {
+    width: "200px",
+    height: "200px",
+    border: "1px solid #ccc",
+    borderRadius: "10px",
+    margin: "10px",
+    padding: "10px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  const imageStyle = {
+    width: "100px",
+    height: "100px",
+  };
+
+  const containerStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    height: "100vh",
+    marginTop: "30px",
+  };
+
+  const searchBoxContainer = {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "60px",
+  };
+
+  const searchBox = {
+    width: "800px",
+    height: "30px",
+  };
 
   return (
-    <div className="App">
-      <header className="flex-center">
-        <input
-          type="text"
-          placeholder="Search for countries"
-          onChange={(e) => debounceHandleSearchChange(e.target.value)}
-        />
-      </header>
-
-      <div className="flag-container flex-center">
-        {countryList.length > 0 &&
-          countryList.map((country) => (
-            <div className="countryCard" key={country.name}>
-              <img src={country.flag} alt={`Flag of ${country.name}`} />
-              <p>{country.name}</p>
-            </div>
-          ))}
+    <div>
+      <div style={{ backgroundColor: "rgba(0,0,0,0.1)" }}>
+        <form
+          style={searchBoxContainer}
+          onSubmit={(e) => {
+            e.preventDefault();
+            searchCountries();
+          }}
+        >
+          <input
+            style={searchBox}
+            type="text"
+            value={searchText}
+            onChange={(e) => handleSearch(e)}
+            placeholder="Search for countries..."
+          />
+        </form>
+      </div>
+      <div style={containerStyle}>
+        {searchData.map((country) => (
+          <div key={country.cca3} style={cardStyle} className="countryCard">
+            <img
+              src={country.flags.png}
+              alt={`Flag of ${country.name.common}`}
+              style={imageStyle}
+            />
+            <h2>{country.name.common}</h2>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-
-export default App;
